@@ -11,45 +11,40 @@ import (
 	"clean-standby-list/internal/elevation"
 	"clean-standby-list/internal/tray"
 
+	"github.com/StackExchange/wmi"
 	"golang.org/x/sys/windows"
 )
 
 const (
 	SystemMemoryListInformationClass = 0x0050
 	MemoryPurgeStandbyList           = 4
+	PercentThreshold                 = 65
 )
 
 var lastCleanup time.Time
 
+type Win32_PerfRawData_PerfOS_Memory struct {
+	StandbyCacheNormalPriorityBytes uint64
+	StandbyCacheReserveBytes        uint64
+	StandbyCacheCoreBytes           uint64
+	AvailableBytes                  uint64
+}
+
+// GetStandbyListInfo retrieves the size of the standby list and free memory using WMI
 func GetStandbyListInfo() (standbySize, freeSize uint64, err error) {
-	// Define the MEMORYSTATUSEX structure
-	type MEMORYSTATUSEX struct {
-		Length               uint32
-		MemoryLoad           uint32
-		TotalPhys            uint64
-		AvailPhys            uint64
-		TotalPageFile        uint64
-		AvailPageFile        uint64
-		TotalVirtual         uint64
-		AvailVirtual         uint64
-		AvailExtendedVirtual uint64
-	}
-
-	// Initialize the structure and set its length
-	var memStatus MEMORYSTATUSEX
-	memStatus.Length = uint32(unsafe.Sizeof(memStatus))
-
-	// Call GlobalMemoryStatusEx to fill the structure
-	r, _, err := windows.NewLazySystemDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx").Call(uintptr(unsafe.Pointer(&memStatus)))
-	if r == 0 {
+	var dst []Win32_PerfRawData_PerfOS_Memory
+	query := wmi.CreateQuery(&dst, "")
+	err = wmi.Query(query, &dst)
+	if err != nil {
 		return 0, 0, err
 	}
 
-	// Calculate standby size and free size
-	standbySize = memStatus.TotalPageFile - memStatus.AvailPageFile
-	freeSize = memStatus.AvailPhys + standbySize
-
-	return standbySize, freeSize, nil
+	if len(dst) > 0 {
+		standbySize = dst[0].StandbyCacheCoreBytes + dst[0].StandbyCacheNormalPriorityBytes + dst[0].StandbyCacheReserveBytes
+		freeSize = dst[0].AvailableBytes
+		return standbySize, freeSize, nil
+	}
+	return 0, 0, fmt.Errorf("no data returned from WMI query")
 }
 
 func CheckAndCleanStandbyList() {
@@ -61,8 +56,8 @@ func CheckAndCleanStandbyList() {
 	percent := (standbySize * 100) / freeSize
 	log.Printf("Standby List: %d MB, Free Memory: %d MB, Percent: %d%%\n", standbySize/1024/1024, freeSize/1024/1024, percent)
 
-	if percent > 65 && time.Since(lastCleanup) > 5*time.Minute {
-		log.Println("Standby list exceeds 65% of free memory, cleaning...")
+	if percent > PercentThreshold && time.Since(lastCleanup) > 5*time.Minute {
+		log.Printf("Standby list exceeds %d%% of free memory, cleaning...\n", PercentThreshold)
 		if err := EmptyStandbyList(); err != nil {
 			log.Printf("Error cleaning standby list: %v\n", err)
 		} else {
