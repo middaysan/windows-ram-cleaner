@@ -4,8 +4,9 @@ This is a simple Windows application that runs in the system tray and allows you
 
 ## Features
 - Runs in the system tray.
-- Cleans the standby memory list.
+- Cleans the standby memory list when its size exceeds 65% of free memory.
 - Requests administrator privileges on startup.
+- Displays memory usage statistics when hovering over the tray icon.
 - Uses an embedded icon for the tray.
 
 ## Requirements
