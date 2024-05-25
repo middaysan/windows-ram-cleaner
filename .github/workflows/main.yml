@@ -2,8 +2,6 @@ name: Build and Release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*.*.*'
 
@@ -24,7 +22,7 @@ jobs:
         run: go get -u golang.org/x/sys/windows github.com/getlantern/systray
 
       - name: Build application
-        run: go build -ldflags="-H windowsgui -extldflags=-Wl,app.manifest" -o memory-cleaner-tray.exe
+        run: go build -ldflags="-H windowsgui -extldflags=-Wl,app.manifest" -o memory-cleaner-tray.exe ./cmd/main.go
 
       - name: Archive build
         uses: actions/upload-artifact@v2
