@@ -7,7 +7,10 @@ require (
 	golang.org/x/sys v0.20.0
 )
 
+require github.com/go-ole/go-ole v1.2.5 // indirect
+
 require (
+	github.com/StackExchange/wmi v1.2.1
 	github.com/getlantern/context v0.0.0-20220418194847-3d5e7a086201 // indirect
 	github.com/getlantern/errors v1.0.4 // indirect
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65 // indirect

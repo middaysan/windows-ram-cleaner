@@ -49,12 +49,12 @@ func OnReady(emptyStandbyList func() error, checkAndCleanStandbyList func()) {
 	go func() {
 		for {
 			checkAndCleanStandbyList()
-			time.Sleep(1 * time.Minute) // Update every minute
+			time.Sleep(30 * time.Second) // Update every minute
 		}
 	}()
 }
 
 func UpdateTooltip(standbySize, freeSize uint64, percent uint64) {
-	tooltip := fmt.Sprintf("Standby List: %d MB, Free Memory: %d MB, Percent: %d%%", standbySize/1024/1024, freeSize/1024/1024, percent)
+	tooltip := fmt.Sprintf("Standby List: %d MB, Free Memory: %d MB, Percent: %d%%", standbySize/(1024*1024), freeSize/(1024*1024), percent)
 	systray.SetTooltip(tooltip)
 }
