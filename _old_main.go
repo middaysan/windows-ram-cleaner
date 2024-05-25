@@ -1,13 +1,14 @@
 package main
 
 import (
-	_ "embed" // Import the embed package
+	_ "embed"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"github.com/getlantern/systray"
@@ -23,6 +24,8 @@ const (
 //
 //go:embed icon.ico
 var iconData []byte
+
+var lastCleanup time.Time
 
 // Check and elevate to run as administrator
 func runMeElevated() {
@@ -112,6 +115,66 @@ func emptyStandbyList() error {
 	return nil
 }
 
+// getStandbyListInfo retrieves the size of the standby list and free memory
+func getStandbyListInfo() (standbySize, freeSize uint64, err error) {
+	// Define the MEMORYSTATUSEX structure
+	type MEMORYSTATUSEX struct {
+		Length               uint32
+		MemoryLoad           uint32
+		TotalPhys            uint64
+		AvailPhys            uint64
+		TotalPageFile        uint64
+		AvailPageFile        uint64
+		TotalVirtual         uint64
+		AvailVirtual         uint64
+		AvailExtendedVirtual uint64
+	}
+
+	// Initialize the structure and set its length
+	var memStatus MEMORYSTATUSEX
+	memStatus.Length = uint32(unsafe.Sizeof(memStatus))
+
+	// Call GlobalMemoryStatusEx to fill the structure
+	r, _, err := windows.NewLazySystemDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx").Call(uintptr(unsafe.Pointer(&memStatus)))
+	if r == 0 {
+		return 0, 0, err
+	}
+
+	// Calculate standby size and free size
+	standbySize = memStatus.TotalPageFile - memStatus.AvailPageFile
+	freeSize = memStatus.AvailPhys + standbySize
+
+	return standbySize, freeSize, nil
+}
+
+// checkAndCleanStandbyList checks the size of the standby list and cleans it if necessary
+func checkAndCleanStandbyList() {
+	standbySize, freeSize, err := getStandbyListInfo()
+	if err != nil {
+		log.Printf("Error getting memory info: %v\n", err)
+		return
+	}
+	percent := (standbySize * 100) / freeSize
+	log.Printf("Standby List: %d MB, Free Memory: %d MB, Percent: %d%%\n", standbySize/1024/1024, freeSize/1024/1024, percent)
+
+	if percent > 65 && time.Since(lastCleanup) > 5*time.Minute {
+		log.Println("Standby list exceeds 65% of free memory, cleaning...")
+		if err := emptyStandbyList(); err != nil {
+			log.Printf("Error cleaning standby list: %v\n", err)
+		} else {
+			log.Println("Standby list cleaned successfully")
+			lastCleanup = time.Now()
+		}
+	}
+	updateTooltip(standbySize, freeSize, percent)
+}
+
+// updateTooltip updates the system tray tooltip with the current standby list info
+func updateTooltip(standbySize, freeSize uint64, percent uint64) {
+	tooltip := fmt.Sprintf("Standby List: %d MB, Free Memory: %d MB, Percent: %d%%", standbySize/1024/1024, freeSize/1024/1024, percent)
+	systray.SetTooltip(tooltip)
+}
+
 // onReady is called when the system tray is ready
 func onReady() {
 	systray.SetIcon(iconData) // Use the embedded icon
@@ -129,11 +192,20 @@ func onReady() {
 					log.Printf("Error cleaning standby list: %v\n", err)
 				} else {
 					log.Println("Standby list cleaned successfully")
+					lastCleanup = time.Now()
 				}
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				os.Exit(0)
 			}
+		}
+	}()
+
+	// Periodically update the tooltip with memory information
+	go func() {
+		for {
+			checkAndCleanStandbyList()
+			time.Sleep(1 * time.Minute) // Update every minute
 		}
 	}()
 }
