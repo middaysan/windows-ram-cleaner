@@ -1,9 +1,8 @@
 // Description: This package provides functions to elevate the current process to run as administrator.
-package elevation
+package windowsapi
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"syscall"
@@ -11,7 +10,12 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func RunMeElevated() {
+// RunAsAdmin runs the current executable with administrative privileges.
+// It uses the Windows API function ShellExecute to execute the executable
+// with the "runas" verb, which prompts the user for consent to elevate
+// the process. The function takes no arguments and returns no values.
+// If an error occurs during the execution, it will be printed to the console.
+func RunAsAdmin() {
 	verb := "runas"
 	exe, _ := os.Executable()
 	cwd, _ := os.Getwd()
@@ -30,25 +34,40 @@ func RunMeElevated() {
 	}
 }
 
-func EnablePrivilege(privilegeName string) error {
-	log.Printf("Attempting to enable privilege: %s\n", privilegeName)
+// GrantPrivileges grants specific privileges to the current process.
+// It enables the privileges specified in the `privileges` slice.
+// If any privilege fails to be enabled, an error is returned.
+func GrantPrivileges() error {
+	privileges := []string{"SeProfileSingleProcessPrivilege", "SeIncreaseQuotaPrivilege", "SeDebugPrivilege"}
+	for _, privilege := range privileges {
+		if err := enablePrivilege(privilege); err != nil {
+			return fmt.Errorf("failed to enable privilege %s: %v", privilege, err)
+		}
+	}
+
+	return nil
+}
+
+// enablePrivilege enables the specified privilege for the current process.
+// It takes a privilegeName string as input and returns an error if any.
+// The function uses the Windows API to lookup the privilege value, open the process token,
+// adjust the token privileges, and enable the specified privilege.
+// If any error occurs during the process, it returns an error with a descriptive message.
+func enablePrivilege(privilegeName string) error {
 	var luid windows.LUID
 	err := windows.LookupPrivilegeValue(nil, windows.StringToUTF16Ptr(privilegeName), &luid)
 	if err != nil {
 		return fmt.Errorf("LookupPrivilegeValue error: %v", err)
 	}
-	log.Printf("LookupPrivilegeValue succeeded for privilege: %s\n", privilegeName)
 
 	var token windows.Token
 	processHandle := windows.CurrentProcess()
-	log.Println("GetCurrentProcess succeeded")
 
 	err = windows.OpenProcessToken(processHandle, windows.TOKEN_ADJUST_PRIVILEGES|windows.TOKEN_QUERY, &token)
 	if err != nil {
 		return fmt.Errorf("OpenProcessToken error: %v", err)
 	}
 	defer token.Close()
-	log.Println("OpenProcessToken succeeded")
 
 	tp := windows.Tokenprivileges{
 		PrivilegeCount: 1,
@@ -61,12 +80,10 @@ func EnablePrivilege(privilegeName string) error {
 	if err != nil {
 		return fmt.Errorf("AdjustTokenPrivileges error: %v", err)
 	}
-	log.Printf("AdjustTokenPrivileges succeeded for privilege: %s\n", privilegeName)
+
 	return nil
 }
 
 func IsRunAsAdmin() bool {
-	elevated := windows.GetCurrentProcessToken().IsElevated()
-	fmt.Printf("Admin: %v\n", elevated)
-	return elevated
+	return windows.GetCurrentProcessToken().IsElevated()
 }

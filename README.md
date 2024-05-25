@@ -3,13 +3,13 @@
 This is a simple Windows application that runs in the system tray and allows you to clean the standby memory list. The application requests administrator privileges upon startup and provides a menu in the tray to perform memory cleaning.
 
 ## Features
-- Runs in the system tray.
+- Cleans RAM 
 - Cleans the standby memory list when its size exceeds 65% of free memory.
-- Requests administrator privileges on startup.
 - Displays memory usage statistics when hovering over the tray icon.
-- Uses an embedded icon for the tray.
+- Runs in the system tray.
 
 ## Requirements
+- Requests administrator privileges on startup.
 - Windows operating system.
 - Go 1.16 or later.
 
