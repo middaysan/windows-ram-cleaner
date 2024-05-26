@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"time"
 
+	_ "github.com/josephspurrier/goversioninfo"
+
 	"github.com/getlantern/systray"
 )
 
@@ -17,6 +19,7 @@ const (
 	percentThreshold = 65
 )
 
+//go:generate goversioninfo -icon=exe_icon.ico -manifest=app.manifest
 func main() {
 	// Request admin rights if not already granted
 	if !windowsapi.IsRunAsAdmin() {

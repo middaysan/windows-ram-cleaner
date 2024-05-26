@@ -19,10 +19,13 @@ jobs:
           go-version: '1.22.3'
 
       - name: Install dependencies
-        run: go get -u golang.org/x/sys/windows github.com/getlantern/systray
+        run: go get -u golang.org/x/sys/windows github.com/getlantern/systray github.com/josephspurrier/goversioninfo
+
+      - name: Generate .syso
+        run: go generate .\cmd\
 
       - name: Build application
-        run: go build -ldflags="-H windowsgui -extldflags=-Wl,app.manifest" -o memory-cleaner-tray.exe ./cmd/main.go
+        run: go build -ldflags="-H windowsgui -extldflags=-Wl,app.manifest" -o memory-cleaner-tray.exe .\cmd\
 
       - name: Archive build
         uses: actions/upload-artifact@v2
