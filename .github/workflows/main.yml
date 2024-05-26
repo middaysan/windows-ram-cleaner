@@ -21,9 +21,6 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
-      - name: Install goversioninfo
-        run: go install github.com/josephspurrier/goversioninfo@latest
-
       - name: Generate .syso
         run: go generate .\cmd\
 
