@@ -21,6 +21,12 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
+      - name: Install goversioninfo
+        run: go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
+
+      - name: Add Go bin to PATH
+        run: echo "${{ runner.tool_cache }}/go/$(go version | awk '{print $3}')/bin" >> $GITHUB_PATH
+
       - name: Generate .syso
         run: go generate .\cmd\
 
