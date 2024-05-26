@@ -41,17 +41,6 @@ func CleanRAM() error {
 	return err
 }
 
-// GetStanbyListAndFreeRAMSize retrieves the size of the standby list and the amount of free RAM.
-// It returns the standby list size, free RAM size, and any error encountered.
-func GetStanbyListAndFreeRAMSize() (uint64, uint64, error) {
-	standbySize, freeSize, err := getStandbyListInfo()
-	if err != nil {
-		return 0, 0, fmt.Errorf("error getting memory info: %v", err)
-	}
-
-	return standbySize, freeSize, nil
-}
-
 // CleanStandbyList purges the standby list in the system memory.
 // It grants necessary privileges to the process and calls the NtSetSystemInformation function
 // to perform the memory purge operation.
@@ -74,8 +63,8 @@ func CleanStandbyList() error {
 	return nil
 }
 
-// GetStandbyListInfo retrieves the size of the standby list and free memory using WMI
-func getStandbyListInfo() (standbySize, freeSize uint64, err error) {
+// GetStanbyListAndFreeRAMSize retrieves the size of the standby list and free memory using WMI
+func GetStanbyListAndFreeRAMSize() (standbySize, freeSize uint64, err error) {
 	var dst []Win32_PerfRawData_PerfOS_Memory
 	query := wmi.CreateQuery(&dst, "")
 	err = wmi.Query(query, &dst)

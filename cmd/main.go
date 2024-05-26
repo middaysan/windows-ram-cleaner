@@ -55,15 +55,16 @@ func autoCleanStandbyList(stopChan chan struct{}) {
 			return
 		default:
 			standbyList, freeRAM, _ := windowsapi.GetStanbyListAndFreeRAMSize()
-			percent := standbyList / freeRAM * 100
+			percent := (standbyList * 100) / freeRAM
 
-			if percent > percentThreshold && time.Since(lastCleanup) > 5*time.Minute {
+			// 5 minutes cooldown
+			if (percent > percentThreshold) && (time.Since(lastCleanup) > 5*time.Minute) {
 				windowsapi.CleanStandbyList()
 				lastCleanup = time.Now()
 			}
 
 			tray.UpdateTooltip()
-			time.Sleep(1 * time.Minute)
+			time.Sleep(5 * time.Second)
 		}
 	}
 }
