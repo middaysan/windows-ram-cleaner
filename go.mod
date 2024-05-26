@@ -4,13 +4,13 @@ go 1.22.3
 
 require (
 	github.com/getlantern/systray v1.2.2
+	github.com/josephspurrier/goversioninfo v1.4.0
 	golang.org/x/sys v0.20.0
 )
 
 require (
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
-	github.com/josephspurrier/goversioninfo v1.4.0
 )
 
 require (

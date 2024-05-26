@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"time"
 
+	_ "github.com/josephspurrier/goversioninfo"
+
 	"github.com/getlantern/systray"
 )
 
