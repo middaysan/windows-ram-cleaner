@@ -3,8 +3,8 @@
 package main
 
 import (
-	"clean-standby-list/internal/tray"
-	"clean-standby-list/internal/windows_api"
+	"windows-ram-cleaner/internal/tray"
+	"windows-ram-cleaner/internal/windows_api"
 	"runtime"
 	"time"
 

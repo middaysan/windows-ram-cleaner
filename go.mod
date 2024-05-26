@@ -1,4 +1,4 @@
-module clean-standby-list
+module windows-ram-cleaner
 
 go 1.22.3
 

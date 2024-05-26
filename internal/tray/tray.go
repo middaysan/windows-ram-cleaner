@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	windowsapi "clean-standby-list/internal/windows_api"
+	windowsapi "windows-ram-cleaner/internal/windows_api"
 
 	"github.com/getlantern/systray"
 )
