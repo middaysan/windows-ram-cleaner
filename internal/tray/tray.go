@@ -10,7 +10,7 @@ import (
 	"time"
 
 	windowsapi "windows-ram-cleaner/internal/windows_api"
-
+	"windows-ram-cleaner/internal/win_startup"
 	"github.com/getlantern/systray"
 )
 
@@ -35,6 +35,20 @@ var TrayInfo = TrayInfoStruct{
 	ErrorStr: "",
 }
 
+type StartupManagement struct {
+	AddToStartup *systray.MenuItem
+	RemoveFromStartup *systray.MenuItem
+}
+
+type TrayMenuItems struct { 
+	MSTDClean *systray.MenuItem
+	MRAMClean *systray.MenuItem
+	StartupManagement *StartupManagement
+	MQuit *systray.MenuItem
+}
+
+var MenuItems = TrayMenuItems{}
+
 // OnReady initializes the system tray icon and menu items.
 // It sets the icon, title, and adds menu items for cleaning the standby list, cleaning the RAM, and quitting the application.
 // It also starts a goroutine to handle menu item clicks.
@@ -42,11 +56,32 @@ func OnReady() {
 	systray.SetIcon(iconData) // Use the embedded icon
 	systray.SetTitle("Memory Cleaner")
 
-	mSTDClean := systray.AddMenuItem("Clean Standby List", "Clean the standby list")
-	mRAMClean := systray.AddMenuItem("Clean RAM", "Clean the RAM")
-	mQuit := systray.AddMenuItem("Quit", "Exit the application")
+	MenuItems.MSTDClean = systray.AddMenuItem("Clean Standby List", "Clean the standby list")
+	MenuItems.MRAMClean = systray.AddMenuItem("Clean RAM", "Clean the RAM")
+	MenuItems.StartupManagement = &StartupManagement{
+		AddToStartup: systray.AddMenuItem("Add to Startup", "Add the application to startup"),
+		RemoveFromStartup: systray.AddMenuItem("Remove from Startup", "Remove the application from startup"),
+	}
 
-	go handleMenuClicks(mSTDClean, mRAMClean, mQuit)
+	ex, err := winstartup.CheckStartupTask()
+	if err != nil {
+		MenuItems.StartupManagement.AddToStartup.Disable()
+		MenuItems.StartupManagement.RemoveFromStartup.Disable()
+		windowsapi.ShowError(
+			fmt.Sprintf("Can't check startup aplication status, err: %s", err.Error()) , 
+			"Error checking startup task",
+		)
+	} else {
+		if ex {
+			MenuItems.StartupManagement.AddToStartup.Disable()
+		} else {
+			MenuItems.StartupManagement.RemoveFromStartup.Disable()
+		}
+	}
+
+	MenuItems.MQuit = systray.AddMenuItem("Quit", "Exit the application")
+
+	go handleMenuClicks(&MenuItems)
 }
 
 // UpdateTooltip updates the tooltip text of the system tray icon.
@@ -56,7 +91,10 @@ func OnReady() {
 func UpdateTooltip() {
 	standbyList, freeRAM, err := windowsapi.GetStanbyListAndFreeRAMSize()
 	if err != nil {
-		TrayInfo.ErrorStr = err.Error()
+		windowsapi.ShowError(
+			fmt.Sprintf("Can't get standby list and free RAM size, err: %s", err.Error()) ,
+			"Error getting standby list and free RAM size",
+		)
 	}
 
 	tooltipStr := fmt.Sprintf(
@@ -70,10 +108,10 @@ func UpdateTooltip() {
 	systray.SetTooltip(tooltipStr)
 }
 
-func handleMenuClicks(mSTDClean, mRAMClean, mQuit *systray.MenuItem) {
+func handleMenuClicks(TrayMenuItems *TrayMenuItems) {
 	for {
 		select {
-		case <-mRAMClean.ClickedCh:
+		case <-TrayMenuItems.MRAMClean.ClickedCh:
 			if err := windowsapi.CleanRAM(); err != nil {
 				TrayInfo.ErrorStr = err.Error()
 				UpdateTooltip()
@@ -81,7 +119,7 @@ func handleMenuClicks(mSTDClean, mRAMClean, mQuit *systray.MenuItem) {
 				TrayInfo.LastRAMCleanup = time.Now()
 				UpdateTooltip()
 			}
-		case <-mSTDClean.ClickedCh:
+		case <-TrayMenuItems.MSTDClean.ClickedCh:
 			if err := windowsapi.CleanStandbyList(); err != nil {
 				TrayInfo.ErrorStr = err.Error()
 				UpdateTooltip()
@@ -89,7 +127,27 @@ func handleMenuClicks(mSTDClean, mRAMClean, mQuit *systray.MenuItem) {
 				TrayInfo.LastSTDCleanup = time.Now()
 				UpdateTooltip()
 			}
-		case <-mQuit.ClickedCh:
+		case <-TrayMenuItems.StartupManagement.AddToStartup.ClickedCh:
+			if err := winstartup.CreateStartupTask(); err == nil {
+				TrayMenuItems.StartupManagement.AddToStartup.Disable()
+				TrayMenuItems.StartupManagement.RemoveFromStartup.Enable()
+			} else {
+				windowsapi.ShowError(
+					fmt.Sprintf("Can't create startup task, err: %s", err.Error()) , 
+					"Error creating startup task",
+				)
+			}
+		case <-TrayMenuItems.StartupManagement.RemoveFromStartup.ClickedCh:
+			if err := winstartup.DeleteStartupTask(); err == nil {
+				TrayMenuItems.StartupManagement.RemoveFromStartup.Disable()
+				TrayMenuItems.StartupManagement.AddToStartup.Enable()
+			} else {
+				windowsapi.ShowError(
+					fmt.Sprintf("Can't delete startup task, err: %s", err.Error()) ,
+					"Error deleting startup task",
+				)
+			}
+		case <-TrayMenuItems.MQuit.ClickedCh:
 			systray.Quit()
 			os.Exit(0)
 		}

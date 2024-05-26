@@ -49,6 +49,9 @@ func onExit() {
 //
 // Note: The function assumes the availability of the windowsapi package.
 func autoCleanStandbyList(stopChan chan struct{}) {
+	// Initial sleep to allow the systray to be ready
+	time.Sleep(1 * time.Minute)
+
 	for {
 		select {
 		case <-stopChan:
@@ -64,7 +67,7 @@ func autoCleanStandbyList(stopChan chan struct{}) {
 			}
 
 			tray.UpdateTooltip()
-			time.Sleep(5 * time.Second)
+			time.Sleep(5 * time.Minute)
 		}
 	}
 }
