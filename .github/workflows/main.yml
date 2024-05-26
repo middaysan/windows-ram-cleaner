@@ -31,13 +31,13 @@ jobs:
         run: go generate .\cmd\
 
       - name: Build application
-        run: go build -ldflags="-H windowsgui -extldflags=-Wl,app.manifest" -o memory-cleaner-tray.exe .\cmd\
+        run: go build -ldflags="-H windowsgui -extldflags=-Wl,app.manifest" -o windows-ram-cleaner.exe .\cmd\
 
       - name: Archive build
         uses: actions/upload-artifact@v2
         with:
-          name: memory-cleaner-tray
-          path: memory-cleaner-tray.exe
+          name: windows-ram-cleaner
+          path: windows-ram-cleaner.exe
 
   release:
     needs: build
@@ -50,7 +50,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: memory-cleaner-tray
+          name: windows-ram-cleaner
 
       - name: Create GitHub Release
         id: create_release
@@ -69,6 +69,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: memory-cleaner-tray.exe
-          asset_name: memory-cleaner-tray.exe
+          asset_path: windows-ram-cleaner.exe
+          asset_name: windows-ram-cleaner.exe
           asset_content_type: application/octet-stream
