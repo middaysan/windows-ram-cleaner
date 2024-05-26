@@ -3,19 +3,19 @@
 
 ## Overview
 
-Windows RAM Cleaner is a lightweight tray application built with Go that helps manage and clean your system's standby memory. The application runs smoothly on Windows without any additional system requirements, such as the .NET Framework.
+Windows RAM Cleaner is a lightweight tray application built with Go that helps manage and clean your system's memory. The application runs smoothly on Windows without any additional system requirements, such as the .NET Framework.
 
 ## Key Features
 
 - **No Additional Requirements**: Pure Go application, no .NET Framework needed.
-- **Standby Memory Cleaning**: Automatically cleans the standby memory list when it exceeds 65% of free memory.
+- **Memory Cleaning**: Automatically cleans both the standby memory list and RAM when needed.
 - **System Tray Integration**: Runs quietly in the system tray with easy access.
 - **Memory Usage Display**: Hover over the tray icon to view memory usage statistics.
 
 ## Requirements
 
-- Requests administrator privileges on startup for effective memory management.
 - Windows operating system
+- Administrator privileges
 
 ## Installation
 
@@ -26,13 +26,12 @@ Windows RAM Cleaner is a lightweight tray application built with Go that helps m
 ## Usage
 
 1. Run the application:
-    ```sh
-    ./windows-ram-cleaner.exe
-    ```
+    - Double click on exe-file and aprove run.
 2. The application will appear in the system tray.
 3. Right-click the tray icon to access the menu.
-4. Select "Clean" to clean the standby memory list.
-5. Select "Quit" to exit the application.
+4. Select "Clean RAM" to clean the RAM.
+5. Select "Clean Standby List" to clean the standby memory list.
+6. Select "Quit" to exit the application.
 
 ## License
 
