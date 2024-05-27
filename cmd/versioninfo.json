@@ -2,14 +2,14 @@
   "FixedFileInfo": {
     "FileVersion": {
       "Major": 1,
-      "Minor": 2,
-      "Patch": 5,
+      "Minor": 4,
+      "Patch": 2,
       "Build": 0
     },
     "ProductVersion": {
       "Major": 1,
-      "Minor": 2,
-      "Patch": 5,
+      "Minor": 4,
+      "Patch": 2,
       "Build": 0
     },
     "FileFlagsMask": "3f",
@@ -19,16 +19,16 @@
     "FileSubtype": "00"
   },
   "StringFileInfo": {
-    "Comments": "Standby List Memory Cleaner - Tray Application",
+    "Comments": "Windows RAM cleaner - Tray Application",
     "CompanyName": "Middaysan",
-    "FileDescription": "This is a simple Windows application that runs in the system tray and allows you to clean the standby memory list.",
-    "FileVersion": "1.2.5.0",
-    "InternalName": "memory-cleaner-tray.exe",
+    "FileDescription": "This is a simple Windows application that runs in the system tray and allows you to clean RAM",
+    "FileVersion": "1.4.2.0",
+    "InternalName": "windows-ram-cleaner.exe",
     "LegalCopyright": "Copyright © 2024 Middaysan",
     "LegalTrademarks": "",
-    "OriginalFilename": "memory-cleaner-tray.exe",
-    "ProductName": "Clean Standby List",
-    "ProductVersion": "1.2.5.0"
+    "OriginalFilename": "windows-ram-cleaner.exe",
+    "ProductName": "Windows RAM Cleaner",
+    "ProductVersion": "1.4.2.0"
   },
   "VarFileInfo": {
     "Translation": {
