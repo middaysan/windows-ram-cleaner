@@ -35,7 +35,7 @@ func DeleteStartupTask() error {
 	return nil
 }
 
-func CheckStartupTask() (bool, error) {
+func IsStartupTaskExists() (bool, error) {
 	cmd := exec.Command("schtasks", "/query", "/tn", WinTaskName)
 	output, err := cmd.CombinedOutput()
 

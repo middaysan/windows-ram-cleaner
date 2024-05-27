@@ -13,10 +13,10 @@ import (
 	"github.com/getlantern/systray"
 )
 
-var lastCleanup time.Time
 var stopChan = make(chan struct{})
 const (
 	percentThreshold = 65
+	autoCleanupCooldown = 5 * time.Minute
 )
 
 //go:generate goversioninfo -icon=exe_icon.ico -manifest=app.manifest
@@ -50,7 +50,7 @@ func onExit() {
 // Note: The function assumes the availability of the windowsapi package.
 func autoCleanStandbyList(stopChan chan struct{}) {
 	// Initial sleep to allow the systray to be ready
-	time.Sleep(1 * time.Minute)
+	time.Sleep(2 * time.Second)
 
 	for {
 		select {
@@ -60,14 +60,12 @@ func autoCleanStandbyList(stopChan chan struct{}) {
 			standbyList, freeRAM, _ := windowsapi.GetStanbyListAndFreeRAMSize()
 			percent := (standbyList * 100) / freeRAM
 
-			// 5 minutes cooldown
-			if (percent > percentThreshold) && (time.Since(lastCleanup) > 5*time.Minute) {
+			if (percent > percentThreshold) {
 				windowsapi.CleanStandbyList()
-				lastCleanup = time.Now()
 			}
 
 			tray.UpdateTooltip()
-			time.Sleep(5 * time.Minute)
+			time.Sleep(autoCleanupCooldown)
 		}
 	}
 }

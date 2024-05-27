@@ -22,11 +22,30 @@ type Win32_PerfRawData_PerfOS_Memory struct {
     AvailableBytes                  uint64
 }
 
+// CleanOptions defines options for the CleanRAM function
+type CleanOptions struct {
+	IgnoreCritical bool
+}
+
+// DefaultCleanOptions returns a CleanOptions struct with default values
+func DefaultCleanOptions() CleanOptions {
+	return CleanOptions{
+		IgnoreCritical: false,
+	}
+}
+
 // CleanRAM cleans the system and process memory to free up RAM.
 // It calls various functions to clean the system memory, process memory, and system working set.
 // If any of the cleaning operations fail, it returns an error.
-func CleanRAM() error {
-    if err := cleanSystemMemory(); err != nil {
+func CleanRAM(opts ...CleanOptions) error {
+    var options CleanOptions
+	if len(opts) > 0 {
+		options = opts[0]
+	} else {
+		options = DefaultCleanOptions()
+	}
+
+    if err := cleanSystemMemory(options.IgnoreCritical); err != nil {
         return fmt.Errorf("failed to clean system memory: %v", err)
     }
 
@@ -109,7 +128,7 @@ func cleanSystemWorkingSet() error {
 }
 
 // cleanSystemMemory frees memory of non-critical processes by emptying their working sets
-func cleanSystemMemory() error {
+func cleanSystemMemory(ignoreCritical bool) error {
     snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
     if err != nil {
         return fmt.Errorf("failed to create snapshot: %v", err)
@@ -123,7 +142,7 @@ func cleanSystemMemory() error {
     }
 
     for {
-        if isCriticalProcess(pe) {
+        if !ignoreCritical && isCriticalProcess(pe) {
             err = windows.Process32Next(snapshot, &pe)
             if err != nil {
                 break
