@@ -28,6 +28,7 @@ func main() {
 	}
 
 	go autoCleanStandbyList(stopChan)
+	go autoUpdateTooltip(stopChan)
 
 	systray.Run(tray.OnReady, onExit)
 }
@@ -49,23 +50,31 @@ func onExit() {
 //
 // Note: The function assumes the availability of the windowsapi package.
 func autoCleanStandbyList(stopChan chan struct{}) {
-	// Initial sleep to allow the systray to be ready
-	time.Sleep(2 * time.Second)
-
 	for {
 		select {
 		case <-stopChan:
 			return
 		default:
+			time.Sleep(autoCleanupCooldown)
 			standbyList, freeRAM, _ := windowsapi.GetStanbyListAndFreeRAMSize()
 			percent := (standbyList * 100) / freeRAM
 
 			if (percent > percentThreshold) {
 				windowsapi.CleanStandbyList()
 			}
+		}
+	}
+}
 
+// autoUpdateTooltip periodically updates the tooltip text of the system tray icon.
+func autoUpdateTooltip(stopChan chan struct{}) {
+	for {
+		select {
+		case <-stopChan:
+			return
+		default:
+			time.Sleep(2 * time.Second)
 			tray.UpdateTooltip()
-			time.Sleep(autoCleanupCooldown)
 		}
 	}
 }
