@@ -26,7 +26,7 @@ func UpdateTooltip() {
 	}
 
 	tooltipStr := fmt.Sprintf(
-		"FreeRAM %dMB\nStandby List size %d MB",
+		"FreeRAM      : %dMB\nStandby List : %d MB",
 		freeRAM/(1024*1024),
 		standbyList/(1024*1024),
 	)
