@@ -9,19 +9,22 @@ import (
 var WinTaskName = "WindowsRAMCleaner"
 
 func CreateStartupTask() error {
-	exePath, err := os.Executable()
-	if err != nil {
-		return err
-	}
+    exePath, err := os.Executable()
+    if err != nil {
+        return err
+    }
 
-	cmd := exec.Command("schtasks", "/create", "/tn", WinTaskName, "/tr", exePath, "/sc", "onlogon", "/rl", "highest", "/f")
+	// it fixes ui the bug that occur when the task runs before the system is ready
+    delay := "0000:10"
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to create scheduled task: %v, output: %s", err, string(output))
-	}
+    cmd := exec.Command("schtasks", "/create", "/tn", WinTaskName, "/tr", exePath, "/sc", "onlogon", "/rl", "highest", "/f", "/delay", delay)
 
-	return nil
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        return fmt.Errorf("failed to create scheduled task: %v, output: %s", err, string(output))
+    }
+
+    return nil
 }
 
 func DeleteStartupTask() error {
