@@ -15,4 +15,6 @@ var (
 	ProcEmptyWorkingSet          = ModPsapi.NewProc("EmptyWorkingSet")
 	NtSetSystemInformation       = Ntdll.NewProc("NtSetSystemInformation")
 	ProcMessageBoxW 			 = User32.NewProc("MessageBoxW")
+	ProcFindWindowW    			 = User32.NewProc("FindWindowW")
+    ProcIsWindowVisible 		 = User32.NewProc("IsWindowVisible")
 )

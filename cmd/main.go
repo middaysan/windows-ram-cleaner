@@ -23,6 +23,11 @@ func main() {
 		return
 	}
 
+	// Wait for the taskbar to be visible before running the system tray
+	for !windowsapi.IsTaskbarVisible() {
+		time.Sleep(1 * time.Second)
+	}
+
 	go autoUpdateTooltip(stopChan)
 
 	systray.Run(tray.OnReady, onExit)

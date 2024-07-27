@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 var WinTaskName = "WindowsRAMCleaner"
@@ -11,21 +13,23 @@ var WinTaskName = "WindowsRAMCleaner"
 func CreateStartupTask() error {
     exePath, err := os.Executable()
     if err != nil {
-        return err
+        return fmt.Errorf("failed to get executable path: %v", err)
     }
 
-	// it fixes ui the bug that occur when the task runs before the system is ready
-    delay := "0000:10"
-
-    cmd := exec.Command("schtasks", "/create", "/tn", WinTaskName, "/tr", exePath, "/sc", "onlogon", "/rl", "highest", "/f", "/delay", delay)
-
-    output, err := cmd.CombinedOutput()
+    key, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
     if err != nil {
-        return fmt.Errorf("failed to create scheduled task: %v, output: %s", err, string(output))
+        return fmt.Errorf("failed to open registry key: %v", err)
+    }
+    defer key.Close()
+
+    err = key.SetStringValue(WinTaskName, exePath)
+    if err != nil {
+        return fmt.Errorf("failed to set registry value: %v", err)
     }
 
     return nil
 }
+
 
 func DeleteStartupTask() error {
 	cmd := exec.Command("schtasks", "/delete", "/tn", WinTaskName, "/f")

@@ -2,6 +2,7 @@ package windowsapi
 
 import (
 	"fmt"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -165,4 +166,22 @@ func cleanSystemMemory(ignoreCritical bool) error {
     }
 
     return nil
+}
+
+// isCriticalProcess checks if taskbar is visible
+func IsTaskbarVisible() bool {
+    taskbarHandle, _, _ := ProcFindWindowW.Call(
+        uintptr(unsafe.Pointer(utf16PtrFromString("Shell_TrayWnd"))),
+        uintptr(0),
+    )
+    visible, _, _ := ProcIsWindowVisible.Call(taskbarHandle)
+    return visible != 0
+}
+
+func utf16PtrFromString(s string) *uint16 {
+    ptr, err := syscall.UTF16PtrFromString(s)
+    if err != nil {
+        panic(err)
+    }
+    return ptr
 }
