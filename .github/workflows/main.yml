@@ -58,11 +58,11 @@ jobs:
         run: sudo apt-get install -y gh
 
       - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          body: "Automated release"
+          artifacts: windows-ram-cleaner.exe
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: |
-          gh release create "$TAG" \
-            --repo "${{ github.repository }}" \
-            --title "Release $TAG" \
-            --generate-notes \
-            windows-ram-cleaner.exe
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
