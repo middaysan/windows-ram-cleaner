@@ -62,7 +62,7 @@ jobs:
         with:
           tag: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
-          body: "Automated release"
+          generateReleaseNotes: true
           artifacts: windows-ram-cleaner.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
