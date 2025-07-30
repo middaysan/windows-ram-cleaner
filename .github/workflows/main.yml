@@ -10,10 +10,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: '1.22.3'
 
@@ -30,7 +30,7 @@ jobs:
         run: go generate .\cmd\
 
       - name: Build application
-        run: go build -ldflags="-H windowsgui -extldflags=-Wl,app.manifest" -o windows-ram-cleaner.exe .\cmd\
+        run: go build -ldflags="-H windowsgui" -o windows-ram-cleaner.exe .\cmd\
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -42,28 +42,25 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # CLI авторизация
+      TAG: ${{ github.ref_name }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-ram-cleaner
 
-      - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: |
-          echo "${{ secrets.PERSONAL_ACCESS_TOKEN }}" | gh auth login --with-token
+      - name: Install GitHub CLI
+        run: sudo apt-get install -y gh
 
       - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          TAG: ${{ github.ref_name }}
         run: |
           gh release create "$TAG" \
-            --repo="${{ github.repository }}" \
-            --title="Release $TAG" \
+            --repo "${{ github.repository }}" \
+            --title "Release $TAG" \
             --generate-notes \
             windows-ram-cleaner.exe
