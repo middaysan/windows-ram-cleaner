@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 	"windows-ram-cleaner/internal/tray"
-	"windows-ram-cleaner/internal/windows_api"
+	windowsapi "windows-ram-cleaner/internal/windows_api"
 
 	_ "github.com/josephspurrier/goversioninfo"
 

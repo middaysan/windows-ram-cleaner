@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -37,27 +36,44 @@ func CreateStartupTask() error {
 }
 
 func DeleteStartupTask() error {
-	cmd := exec.Command("schtasks", "/delete", "/tn", WinTaskName, "/f")
-	output, err := cmd.CombinedOutput()
-
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
 	if err != nil {
-		return fmt.Errorf("failed to delete scheduled task: %v, output: %s", err, string(output))
+		return fmt.Errorf("failed to open registry key: %v", err)
+	}
+	defer func(key registry.Key) {
+		err := key.Close()
+		if err != nil {
+			fmt.Printf("failed to close registry key: %v\n", err)
+		}
+	}(key)
+
+	err = key.DeleteValue(WinTaskName)
+	if err != nil {
+		return fmt.Errorf("failed to delete registry value: %v", err)
 	}
 
 	return nil
 }
 
 func IsStartupTaskExists() (bool, error) {
-	cmd := exec.Command("schtasks", "/query", "/tn", WinTaskName)
-	output, err := cmd.CombinedOutput()
-
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.QUERY_VALUE)
 	if err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+		return false, fmt.Errorf("failed to open registry key: %v", err)
+	}
+	defer func(key registry.Key) {
+		err := key.Close()
+		if err != nil {
+			fmt.Printf("failed to close registry key: %v\n", err)
+		}
+	}(key)
+
+	_, valType, err := key.GetStringValue(WinTaskName)
+	if err != nil {
+		if errors.Is(err, registry.ErrNotExist) {
 			return false, nil
 		}
-		return false, fmt.Errorf("failed to query scheduled task: %v, output: %s", err, string(output))
+		return false, fmt.Errorf("failed to get registry value: %v", err)
 	}
 
-	return true, nil
+	return valType != 0, nil
 }

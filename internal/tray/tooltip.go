@@ -17,7 +17,7 @@ const (
 // and formats the tooltip string with the obtained values and the last cleanup timestamps.
 // The formatted tooltip string is then set as the tooltip for the system tray icon.
 func UpdateTooltip() {
-	standbyList, freeRAM, err := windowsapi.GetStanbyListAndFreeRAMSize()
+	memInfo, err := windowsapi.GetMemoryInfo()
 	if err != nil {
 		windowsapi.ShowError(
 			fmt.Sprintf("Can't get standby list and free RAM size, err: %s", err.Error()),
@@ -27,8 +27,8 @@ func UpdateTooltip() {
 
 	tooltipStr := fmt.Sprintf(
 		"FreeRAM      : %dMB\nStandby List : %d MB",
-		freeRAM/(1024*1024),
-		standbyList/(1024*1024),
+		memInfo.FreeSize/(1024*1024),
+		memInfo.StandbySize/(1024*1024),
 	)
 
 	systray.SetTooltip(tooltipStr)

@@ -1,5 +1,5 @@
 
-# PORTABLE: Windows RAM Cleaner - Tray lighlightweightt application
+# PORTABLE: Windows RAM Cleaner - Tray lightweight application
 
 ## Overview
 

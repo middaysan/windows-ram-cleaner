@@ -6,38 +6,103 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/StackExchange/wmi"
 	"golang.org/x/sys/windows"
 )
 
 const (
-	SystemMemoryListInformationClass = 0x0050
+	SystemMemoryListInformationClass = 0x50
 	MemoryPurgeStandbyList           = 4
 )
 
-// Win32PerforatePerfosMemory structure for WMI queries
-type Win32PerforatePerfosMemory struct {
-	StandbyCacheNormalPriorityBytes uint64
-	StandbyCacheReserveBytes        uint64
-	StandbyCacheCoreBytes           uint64
-	AvailableBytes                  uint64
+// MEMORYSTATUSEX for GlobalMemoryStatusEx
+type MEMORYSTATUSEX struct {
+	DwLength                uint32
+	DwMemoryLoad            uint32
+	UllTotalPhys            uint64
+	UllAvailPhys            uint64
+	UllTotalPageFile        uint64
+	UllAvailPageFile        uint64
+	UllTotalVirtual         uint64
+	UllAvailVirtual         uint64
+	UllAvailExtendedVirtual uint64
 }
 
-// CleanOptions defines options for the CleanRAM function
+// SystemMemoryListInformation struct for NtQuerySystemInformation
+type SystemMemoryListInformation struct {
+	ZeroPageCount               uint64
+	FreePageCount               uint64
+	ModifiedPageCount           uint64
+	ModifiedNoWritePageCount    uint64
+	BadPageCount                uint64
+	ActivePageCount             uint64
+	StandbyPageCount            uint64
+	StandbyPageCountLowPriority uint64
+	StandbyPageCountNormal      uint64
+	StandbyPageCountReserve     uint64
+	TransitionPageCount         uint64
+	ModifiedPageCountPagefile   uint64
+}
+
+// MemoryInfo represents memory stats
+type MemoryInfo struct {
+	FreeSize    uint64 // Available physical memory in bytes
+	StandbySize uint64 // Standby cache size in bytes
+}
+
+// GetMemoryInfo gets memory info via WinAPI
+func GetMemoryInfo() (MemoryInfo, error) {
+	var memInfo MemoryInfo
+
+	// 1. Free RAM
+	var status MEMORYSTATUSEX
+	status.DwLength = uint32(unsafe.Sizeof(status))
+	ret, _, err := procGlobalMemoryStatusEx.Call(uintptr(unsafe.Pointer(&status)))
+	if ret == 0 {
+		return memInfo, fmt.Errorf("GlobalMemoryStatusEx failed: %v", err)
+	}
+	memInfo.FreeSize = status.UllAvailPhys
+
+	// 2. Standby RAM
+	bufferSize := uintptr(16 * 1024) // 16 KB
+	buffer := make([]byte, bufferSize)
+
+	ret, _, _ = NtQuerySystemInformation.Call(
+		uintptr(SystemMemoryListInformationClass),
+		uintptr(unsafe.Pointer(&buffer[0])),
+		bufferSize,
+		0,
+	)
+
+	if ret != 0 {
+		return memInfo, fmt.Errorf("NtQuerySystemInformation failed: NTSTATUS=0x%x", ret)
+	}
+
+	pageSize := uint64(4096)
+	counts := (*[128]uint64)(unsafe.Pointer(&buffer[0])) // берём большой массив, чтобы не выйти за границу
+
+	// Standby страницы примерно с 6 по 15 индекс (включая high/low)
+	standby := uint64(0)
+	for i := 6; i <= 15; i++ {
+		standby += counts[i]
+	}
+
+	memInfo.StandbySize = standby * pageSize
+	return memInfo, nil
+}
+
+// CleanOptions for cleaning RAM
 type CleanOptions struct {
 	IgnoreCritical bool
 }
 
-// DefaultCleanOptions returns a CleanOptions struct with default values
+// DefaultCleanOptions returns default CleanOptions
 func DefaultCleanOptions() CleanOptions {
 	return CleanOptions{
 		IgnoreCritical: false,
 	}
 }
 
-// CleanRAM cleans the system and process memory to free up RAM.
-// It calls various functions to clean the system memory, process memory, and system working set.
-// If any of the cleaning operations fail, it returns an error.
+// CleanRAM cleans RAM: standby list, process WS, system WS
 func CleanRAM(opts ...CleanOptions) error {
 	var options CleanOptions
 	if len(opts) > 0 {
@@ -61,13 +126,10 @@ func CleanRAM(opts ...CleanOptions) error {
 	return nil
 }
 
-// CleanStandbyList purges the standby list in the system memory.
-// It grants necessary privileges to the process and calls the NtSetSystemInformation function
-// to perform the memory purge operation.
-// Returns an error if granting privileges or calling NtSetSystemInformation fails.
+// CleanStandbyList purges standby list
 func CleanStandbyList() error {
 	if err := GrantPrivileges(); err != nil {
-		return fmt.Errorf("failed to grant privileges to the process: %v", err)
+		return fmt.Errorf("failed to grant privileges: %v", err)
 	}
 
 	memoryPurgeStandbyList := uint32(MemoryPurgeStandbyList)
@@ -79,56 +141,30 @@ func CleanStandbyList() error {
 	if r1 != 0 {
 		return fmt.Errorf("NtSetSystemInformation call failed: %v", err)
 	}
-
 	return nil
 }
 
-// GetStanByListAndFreeRAMSize retrieves the size of the standby list and free memory using WMI
-func GetStanByListAndFreeRAMSize() (standbySize, freeSize uint64, err error) {
-	var dst []Win32PerforatePerfosMemory
-	query := wmi.CreateQuery(&dst, "")
-	err = wmi.Query(query, &dst)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if len(dst) > 0 {
-		standbySize = dst[0].StandbyCacheCoreBytes + dst[0].StandbyCacheNormalPriorityBytes + dst[0].StandbyCacheReserveBytes
-		freeSize = dst[0].AvailableBytes
-		return standbySize, freeSize, nil
-	}
-	return 0, 0, fmt.Errorf("no data returned from WMI query")
-}
-
-// getCurrentProcessHandle retrieves the handle of the current process
-func getCurrentProcessHandle() windows.Handle {
-	return windows.CurrentProcess()
-}
-
-// cleanProcessMemory sets the process working set size to minimum and maximum values
+// cleanProcessMemory sets working set size to min/max
 func cleanProcessMemory() error {
-	hProcess := getCurrentProcessHandle()
+	hProcess := windows.CurrentProcess()
 	ret, _, err := ProcSetProcessWorkingSetSize.Call(uintptr(hProcess), uintptr(^uint32(0)), uintptr(^uint32(0)))
 	if ret == 0 {
 		return fmt.Errorf("failed to set process working set size: %v", err)
 	}
-
 	return nil
 }
 
-// cleanSystemWorkingSet empties the working set of the current process
+// cleanSystemWorkingSet empties working set
 func cleanSystemWorkingSet() error {
-	hProcess := getCurrentProcessHandle()
-
+	hProcess := windows.CurrentProcess()
 	ret, _, err := ProcEmptyWorkingSet.Call(uintptr(hProcess))
 	if ret == 0 {
 		return fmt.Errorf("failed to empty working set: %v", err)
 	}
-
 	return nil
 }
 
-// cleanSystemMemory frees memory of non-critical processes by emptying their working sets
+// cleanSystemMemory frees memory of non-critical processes
 func cleanSystemMemory(ignoreCritical bool) error {
 	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
 	if err != nil {
@@ -143,24 +179,23 @@ func cleanSystemMemory(ignoreCritical bool) error {
 	}
 
 	for {
-		if !ignoreCritical && isCriticalProcess(pe) {
-			err = windows.Process32Next(snapshot, &pe)
-			if err != nil {
-				break
+		// Если процесс критический — пропускаем
+		if ignoreCritical || !isCriticalProcess(pe) {
+			hProcess, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_SET_QUOTA, false, pe.ProcessID)
+			if err == nil {
+				ret, _, err := ProcEmptyWorkingSet.Call(uintptr(hProcess))
+				if ret == 0 {
+					return err
+				}
+				err = windows.CloseHandle(hProcess)
+				if err != nil {
+					return err
+				}
+				time.Sleep(10 * time.Millisecond)
 			}
-			continue
 		}
 
-		hProcess, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_SET_QUOTA, false, pe.ProcessID)
-		if err == nil {
-			ProcEmptyWorkingSet.Call(uintptr(hProcess))
-			windows.CloseHandle(hProcess)
-
-			time.Sleep(10 * time.Millisecond)
-		}
-
-		err = windows.Process32Next(snapshot, &pe)
-		if err != nil {
+		if err := windows.Process32Next(snapshot, &pe); err != nil {
 			break
 		}
 	}
@@ -168,7 +203,7 @@ func cleanSystemMemory(ignoreCritical bool) error {
 	return nil
 }
 
-// IsTaskbarVisible isCriticalProcess checks if the taskbar is visible
+// IsTaskbarVisible checks taskbar visibility
 func IsTaskbarVisible() bool {
 	taskbarHandle, _, _ := ProcFindWindowW.Call(
 		uintptr(unsafe.Pointer(utf16PtrFromString("Shell_TrayWnd"))),
