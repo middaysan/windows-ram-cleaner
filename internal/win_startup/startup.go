@@ -1,6 +1,7 @@
 package winstartup
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,25 +12,29 @@ import (
 var WinTaskName = "WindowsRAMCleaner"
 
 func CreateStartupTask() error {
-    exePath, err := os.Executable()
-    if err != nil {
-        return fmt.Errorf("failed to get executable path: %v", err)
-    }
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %v", err)
+	}
 
-    key, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
-    if err != nil {
-        return fmt.Errorf("failed to open registry key: %v", err)
-    }
-    defer key.Close()
+	key, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
+	if err != nil {
+		return fmt.Errorf("failed to open registry key: %v", err)
+	}
+	defer func(key registry.Key) {
+		err := key.Close()
+		if err != nil {
 
-    err = key.SetStringValue(WinTaskName, exePath)
-    if err != nil {
-        return fmt.Errorf("failed to set registry value: %v", err)
-    }
+		}
+	}(key)
 
-    return nil
+	err = key.SetStringValue(WinTaskName, exePath)
+	if err != nil {
+		return fmt.Errorf("failed to set registry value: %v", err)
+	}
+
+	return nil
 }
-
 
 func DeleteStartupTask() error {
 	cmd := exec.Command("schtasks", "/delete", "/tn", WinTaskName, "/f")
@@ -47,7 +52,8 @@ func IsStartupTaskExists() (bool, error) {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to query scheduled task: %v, output: %s", err, string(output))

@@ -4,8 +4,8 @@ package tray
 
 import (
 	"fmt"
-	"windows-ram-cleaner/internal/windows_api"
 	"github.com/getlantern/systray"
+	"windows-ram-cleaner/internal/windows_api"
 )
 
 const (

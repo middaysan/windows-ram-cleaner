@@ -1,4 +1,4 @@
-// Description: This package provides functions to elevate the current process to run as administrator.
+// Package windowsapi Description: This package provides functions to elevate the current process to run as administrator.
 package windowsapi
 
 import (
@@ -10,12 +10,12 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// RunAsAdmin runs the current executable with administrative privileges.
+// RequestAdminRights runs the current executable with administrative privileges.
 // It uses the Windows API function ShellExecute to execute the executable
 // with the "runas" verb, which prompts the user for consent to elevate
 // the process. The function takes no arguments and returns no values.
 // If an error occurs during the execution, it will be printed to the console.
-func RunAsAdmin() {
+func RequestAdminRights() {
 	verb := "runas"
 	exe, _ := os.Executable()
 	cwd, _ := os.Getwd()

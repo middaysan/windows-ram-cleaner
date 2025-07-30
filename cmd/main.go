@@ -3,10 +3,10 @@
 package main
 
 import (
-	"windows-ram-cleaner/internal/tray"
-	"windows-ram-cleaner/internal/windows_api"
 	"runtime"
 	"time"
+	"windows-ram-cleaner/internal/tray"
+	"windows-ram-cleaner/internal/windows_api"
 
 	_ "github.com/josephspurrier/goversioninfo"
 
@@ -19,7 +19,7 @@ var stopChan = make(chan struct{})
 func main() {
 	// Request admin rights if not already granted
 	if !windowsapi.IsRunAsAdmin() {
-		windowsapi.RunAsAdmin()
+		windowsapi.RequestAdminRights()
 		return
 	}
 

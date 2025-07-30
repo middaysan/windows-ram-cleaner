@@ -1,16 +1,16 @@
-// Description: This file contains the tray package which is responsible for creating the system tray icon and handling the tray menu items.
+// Package tray Description: This file contains the tray package which is responsible for creating the system tray icon and handling the tray menu items.
 package tray
 
 import (
 	_ "embed"
 	"fmt"
 	"github.com/getlantern/systray"
-	windowsapi "windows-ram-cleaner/internal/windows_api"
 	winstartup "windows-ram-cleaner/internal/win_startup"
+	windowsapi "windows-ram-cleaner/internal/windows_api"
 )
 
 type StartupManagement struct {
-	AddToStartup    *systray.MenuItem
+	AddToStartup      *systray.MenuItem
 	RemoveFromStartup *systray.MenuItem
 }
 
@@ -20,8 +20,8 @@ type TrayMenuItems struct {
 	MRAMCleanForce  *systray.MenuItem
 	MRAMCleanSafe   *systray.MenuItem
 	MStartupOptions *systray.MenuItem
-	MStartupAdd	 	*systray.MenuItem
-	MStartupRemove	*systray.MenuItem
+	MStartupAdd     *systray.MenuItem
+	MStartupRemove  *systray.MenuItem
 	MQuit           *systray.MenuItem
 }
 
@@ -29,6 +29,7 @@ type TrayMenuItems struct {
 //
 //go:embed assets/icon.ico
 var iconData []byte
+
 // MenuItems stores the menu items for the system tray.
 var MenuItems = TrayMenuItems{}
 

@@ -3,13 +3,13 @@
     "FileVersion": {
       "Major": 1,
       "Minor": 4,
-      "Patch": 2,
+      "Patch": 4,
       "Build": 0
     },
     "ProductVersion": {
       "Major": 1,
       "Minor": 4,
-      "Patch": 2,
+      "Patch": 4,
       "Build": 0
     },
     "FileFlagsMask": "3f",
@@ -22,13 +22,13 @@
     "Comments": "Windows RAM cleaner - Tray Application",
     "CompanyName": "Middaysan",
     "FileDescription": "This is a simple Windows application that runs in the system tray and allows you to clean RAM",
-    "FileVersion": "1.4.2.0",
+    "FileVersion": "1.4.4.0",
     "InternalName": "windows-ram-cleaner.exe",
     "LegalCopyright": "Copyright © 2024 Middaysan",
     "LegalTrademarks": "",
     "OriginalFilename": "windows-ram-cleaner.exe",
     "ProductName": "Windows RAM Cleaner",
-    "ProductVersion": "1.4.2.0"
+    "ProductVersion": "1.4.4.0"
   },
   "VarFileInfo": {
     "Translation": {
